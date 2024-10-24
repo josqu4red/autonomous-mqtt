@@ -29,22 +29,4 @@ menu "Autonomous controller configuration"
         help
             GPIO number for UART TX pin. See UART documentation for more information
             about available pin numbers for UART.
-
-    config AUTONOMOUS_UART_RTS
-        int "UART RTS pin number"
-        range ENV_GPIO_RANGE_MIN ENV_GPIO_OUT_RANGE_MAX
-        default 18 if IDF_TARGET_ESP32
-        default 10 if !IDF_TARGET_ESP32
-        help
-            GPIO number for UART RTS pin. This pin is connected to
-            ~RE/DE pin of RS485 transceiver to switch direction.
-            See UART documentation for more information about available pin
-            numbers for UART.
-
-    config AUTONOMOUS_TASK_STACK_SIZE
-        int "UART echo RS485 example task stack size"
-        range 1024 16384
-        default 3072
-        help
-            Defines stack size for Autonomous controller. Insufficient stack size can cause crash.
 endmenu
