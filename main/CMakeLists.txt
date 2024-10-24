@@ -1,5 +1,6 @@
 set(sources
     main.c
+    uart.c
     wifi.c
 )
 
