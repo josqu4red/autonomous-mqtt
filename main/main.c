@@ -6,6 +6,17 @@
 
 static const char *TAG = "main";
 
+void read_pos(void* position) {
+    uint8_t* pos = (uint8_t*) position;
+    for (;;) {
+        for (int i = 0; i < READ_BUF; i++) {
+            printf("0x%X ", pos[i]);
+        }
+        printf("\n");
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Initializing NV storage");
@@ -24,7 +35,7 @@ void app_main(void)
     ESP_LOGI(TAG, "Initializing UART");
     uart_init();
 
-    button_t b = button_2;
-    go_to_preset(b);
-    xTaskCreate(loop_position, "uart_read_task", 2048, NULL, 10, NULL);
+    uint8_t position[READ_BUF] = {0};
+    xTaskCreate(read_pos, "read_pos_loop", 2048, (void*) position, 10, NULL);
+    xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void*) position, 10, NULL);
 }

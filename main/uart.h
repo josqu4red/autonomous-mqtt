@@ -10,14 +10,13 @@
 #define BUF_SIZE          (127)
 #define BAUD_RATE         (9600)
 
-#define PACKET_READ_TICS  (80 / portTICK_PERIOD_MS)
 #define READ_BUF          (6)
 #define WRITE_BUF         (5)
 
 void uart_init(void);
 
-esp_err_t uart_read(uint8_t* data, int len);
-
 esp_err_t uart_write(uint8_t* data, int len);
+
+void uart_event_handler(void* data);
 
 #endif // AUTONOMOUS_UART
