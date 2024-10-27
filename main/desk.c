@@ -6,15 +6,6 @@ static const char *tag = "desk";
 static const char* cmd_height_topic = "autonomous/desk1/command/height";
 static const char* cmd_preset_topic = "autonomous/desk1/command/preset";
 
-position_t decode_position(uint8_t *buf) {
-    if(buf[0] != recv_hdr1) { return err_position; };
-    if(buf[1] != recv_hdr1) { return err_position; };
-    if(buf[2] != recv_hdr2a && buf[2] != recv_hdr2b) { return err_position; };
-    if(buf[3] != recv_hdr2a && buf[3] != recv_hdr2b) { return err_position; };
-    if(buf[4] != buf[5]) { return err_position; };
-    return buf[4];
-}
-
 static void build_command(uint8_t* buf, button_t button) {
     buf[0] = send_hdr1;
     buf[1] = send_hdr1;
@@ -29,9 +20,9 @@ static void send_command(button_t button) {
     uart_write(data, WRITE_BUF);
 }
 
-static void go_to_height(position_t desired, uint8_t* position) {
+static void go_to_height(position_t desired, position_t* position) {
     ESP_LOGI(tag, "Moving to height %d\n", desired);
-    position_t current = decode_position(position);
+    position_t current = *position;
     bool done = false;
     if (desired == current) {
         return;
@@ -49,7 +40,7 @@ static void go_to_height(position_t desired, uint8_t* position) {
     while(!done) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
         send_command(direction);
-        current = decode_position(position);
+        current = *position;
         ESP_LOGD(tag, "position: %d\n", current);
 
         if (direction == button_up) {
@@ -62,10 +53,10 @@ static void go_to_height(position_t desired, uint8_t* position) {
     }
 }
 
-static void go_to_preset(uint8_t preset, uint8_t* position) {
+static void go_to_preset(uint8_t preset, position_t* position) {
     ESP_LOGI(tag, "Moving to preset %d\n", preset);
     button_t button = presets[preset-1];
-    position_t last = decode_position(position);
+    position_t last = *position;
     bool done = false;
     int idle = 0;
 
@@ -74,7 +65,7 @@ static void go_to_preset(uint8_t preset, uint8_t* position) {
     while(!done) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
         send_command(button);
-        position_t current = decode_position(position);
+        position_t current = *position;
         ESP_LOGD(tag, "position: 0x%X; idle:%d\n", current, idle);
 
         if(last == current) {
@@ -111,7 +102,7 @@ void desk_mqtt_handler(void *handler_args, esp_event_base_t base, int32_t event_
         if (sscanf(payload, "%d", &value) == 1) {
             ESP_LOGD(tag, "Received data: %d\n", value);
             if (strcmp(cmd_height_topic, event->topic) == 0) {
-                if ((value <= low_position) || (value >= high_position)) {
+                if ((value <= position_low) || (value >= position_high)) {
                     ESP_LOGW(tag, "Got invalid height %d\n", value);
                     break;
                 }
