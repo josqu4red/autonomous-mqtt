@@ -1,13 +1,15 @@
+#include "esp_log.h"
 #include "desk.h"
-#include "uart.h"
 
-static uint8_t decode_position(uint8_t *buf) {
+static const char *tag = "desk";
+
+position_t decode_position(uint8_t *buf) {
     if(buf[0] != recv_hdr1) { return err_position; };
     if(buf[1] != recv_hdr1) { return err_position; };
     if(buf[2] != recv_hdr2a && buf[2] != recv_hdr2b) { return err_position; };
     if(buf[3] != recv_hdr2a && buf[3] != recv_hdr2b) { return err_position; };
     if(buf[4] != buf[5]) { return err_position; };
-    return buf[4] - low_position;
+    return buf[4];
 }
 
 static void build_command(uint8_t* buf, button_t button) {
@@ -18,57 +20,68 @@ static void build_command(uint8_t* buf, button_t button) {
     buf[4] = button;
 }
 
-static float position_to_height(uint8_t position) {
-    return (float)(min_height + (position * step)) / 10;
-}
-
-// static uint8_t height_to_position(float height) {
-//     return (height * 10 - min_height) / step;
-// }
-
-uint8_t read_position(void) {
-    uint8_t data[READ_BUF] = {0};
-    uart_read(data, READ_BUF);
-    return decode_position(data);
-}
-
-void loop_position(void *arg) {
-    uint8_t data[READ_BUF] = {0};
-
-    while (1) {
-        if (uart_read(data, READ_BUF) == ESP_OK) {
-            uint8_t position = decode_position(data);
-            float height = position_to_height(position);
-            printf("Receiving: ");
-            for (int i = 0; i < READ_BUF; i++) {
-                printf("0x%X ", (uint8_t)data[i]);
-            }
-            printf("- height: %f\n", height);
-        }
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-}
-
-void send_command(button_t button) {
+static void send_command(button_t button) {
     uint8_t data[WRITE_BUF] = {0};
     build_command(data, button);
     uart_write(data, WRITE_BUF);
 }
 
-void go_to_height(float height) {
-  bool done = false;
-  while(!done) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-  }
+void go_to_height(position_t desired, uint8_t* position) {
+    ESP_LOGI(tag, "Moving to height %d\n", desired);
+    position_t current = decode_position(position);
+    bool done = false;
+    if (desired == current) {
+        return;
+    }
+
+    button_t direction;
+    if (desired < current) {
+        direction = button_down;
+    } else {
+        direction = button_up;
+    }
+
+    send_command(button_none);
+
+    while(!done) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        send_command(direction);
+        current = decode_position(position);
+        ESP_LOGD(tag, "position: %d\n", current);
+
+        if (direction == button_up) {
+          ESP_LOGD(tag, "current %d >= desired %d\n", current, desired);
+          done = (current >= desired - position_threshold);
+        } else {
+          ESP_LOGD(tag, "current %d <= desired %d\n", current, desired);
+          done = (current <= desired + position_threshold);
+        }
+    }
 }
 
-void go_to_preset(button_t button) {
-  vTaskDelay(50 / portTICK_PERIOD_MS);
-  send_command(button_none);
-  vTaskDelay(50 / portTICK_PERIOD_MS);
-  send_command(button);
-  //bool done = false;
-  //while(!done) {
-  //      vTaskDelay(1000 / portTICK_PERIOD_MS);
-  //}
+void go_to_preset(uint8_t preset, uint8_t* position) {
+    ESP_LOGI(tag, "Moving to preset %d\n", preset);
+    button_t button = presets[preset-1];
+    position_t last = decode_position(position);
+    bool done = false;
+    int idle = 0;
+
+    send_command(button_none);
+
+    while(!done) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        send_command(button);
+        position_t current = decode_position(position);
+        ESP_LOGD(tag, "position: 0x%X; idle:%d\n", current, idle);
+
+        if(last == current) {
+            idle++;
+            if (idle >= idle_threshold) {
+                done = true;
+            }
+        } else {
+            idle = 0;
+            last = current;
+        }
+    }
 }
