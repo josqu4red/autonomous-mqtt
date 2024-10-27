@@ -26,14 +26,6 @@ typedef uint8_t position_t;
 
 static const button_t presets[4] = {button_1, button_2, button_3, button_4};
 
-static const uint8_t send_hdr1 = 0xD8;
-static const uint8_t send_hdr2 = 0x66;
-
-// 10th of inches (:
-static const int step = 4;
-static const int min_height = 259;
-static const int max_height = 515;
-
 static const uint8_t position_threshold = 2;
 static const uint8_t idle_threshold = 50;
 

@@ -6,20 +6,6 @@ static const char *tag = "desk";
 static const char* cmd_height_topic = "autonomous/desk1/command/height";
 static const char* cmd_preset_topic = "autonomous/desk1/command/preset";
 
-static void build_command(uint8_t* buf, button_t button) {
-    buf[0] = send_hdr1;
-    buf[1] = send_hdr1;
-    buf[2] = send_hdr2;
-    buf[3] = button;
-    buf[4] = button;
-}
-
-static void send_command(button_t button) {
-    uint8_t data[WRITE_BUF] = {0};
-    build_command(data, button);
-    uart_write(data, WRITE_BUF);
-}
-
 static void go_to_height(position_t desired, position_t* position) {
     ESP_LOGI(tag, "Moving to height %d\n", desired);
     position_t current = *position;
