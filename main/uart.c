@@ -26,15 +26,26 @@ esp_err_t uart_write(uint8_t* data, int len) {
     return uart_wait_tx_done(UART_PORT, 100);
 }
 
+static uint8_t decode_position(uint8_t *buf) {
+    if(buf[0] != recv_hdr1) { return err_position; };
+    if(buf[1] != recv_hdr1) { return err_position; };
+    if(buf[2] != recv_hdr2a && buf[2] != recv_hdr2b) { return err_position; };
+    if(buf[3] != recv_hdr2a && buf[3] != recv_hdr2b) { return err_position; };
+    if(buf[4] != buf[5]) { return err_position; };
+    return buf[4];
+}
+
 void uart_event_handler(void *data) {
     uart_event_t event;
+    uint8_t* arg = (uint8_t*) data;
+    uint8_t msg[READ_BUF] = {0};
     for (;;) {
-        if (xQueueReceive(uart0_queue, (void *)&event, (TickType_t)portMAX_DELAY)) {
+        if (xQueueReceive(uart0_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
             switch (event.type) {
             case UART_DATA:
-                uart_read_bytes(UART_PORT, (uint8_t*) data, event.size, portMAX_DELAY);
-                uint8_t* d = (uint8_t*) data;
-                ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", d[0], d[1], d[2], d[3], d[4], d[5]);
+                uart_read_bytes(UART_PORT, msg, event.size, portMAX_DELAY);
+                ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", msg[0], msg[1], msg[2], msg[3], msg[4], msg[5]);
+                *arg = decode_position(msg);
                 break;
             case UART_FIFO_OVF:
                 // If fifo overflow happened, you should consider adding flow control for your application.

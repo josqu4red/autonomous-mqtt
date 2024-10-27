@@ -11,11 +11,10 @@ static esp_mqtt_client_handle_t mqtt_cli;
 static const char* data_topic = "autonomous/desk1/data";
 
 void read_pos(void* data) {
-    uint8_t* pos = (uint8_t*) data;
     char position_c[4];
     for (;;) {
-        position_t position = decode_position(pos);
-        sprintf(position_c, "%u", position);
+        position_t* position = (uint8_t*) data;
+        sprintf(position_c, "%u", *position);
         esp_mqtt_client_enqueue(mqtt_cli, data_topic, position_c, 0, 1, 0, false);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
@@ -26,7 +25,7 @@ void app_main(void) {
     esp_log_level_set("main", ESP_LOG_DEBUG);
     esp_log_level_set("desk", ESP_LOG_DEBUG);
 
-    uint8_t position[READ_BUF] = {0};
+    position_t position[1] = {0};
 
     ESP_LOGI(tag, "Initializing NV storage");
     esp_err_t ret = nvs_flash_init();
