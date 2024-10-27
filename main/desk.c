@@ -1,13 +1,15 @@
+#include "esp_log.h"
 #include "desk.h"
-#include "uart.h"
 
-static uint8_t decode_position(uint8_t *buf) {
+static const char *tag = "desk";
+
+position_t decode_position(uint8_t *buf) {
     if(buf[0] != recv_hdr1) { return err_position; };
     if(buf[1] != recv_hdr1) { return err_position; };
     if(buf[2] != recv_hdr2a && buf[2] != recv_hdr2b) { return err_position; };
     if(buf[3] != recv_hdr2a && buf[3] != recv_hdr2b) { return err_position; };
     if(buf[4] != buf[5]) { return err_position; };
-    return buf[4] - low_position;
+    return buf[4];
 }
 
 static void build_command(uint8_t* buf, button_t button) {
