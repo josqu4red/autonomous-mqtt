@@ -1,5 +1,6 @@
 set(sources
     desk.c
+    mqtt.c
     uart.c
     wifi.c
     main.c
