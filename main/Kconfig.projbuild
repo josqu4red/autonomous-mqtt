@@ -67,4 +67,10 @@ menu "Autonomous controller configuration"
         config AUTONOMOUS_WIFI_AUTH_WAPI_PSK
             bool "WAPI PSK"
     endchoice
+
+    config AUTONOMOUS_MQTT_BROKER_URL
+        string "MQTT broker URL"
+        default "mqtt://mqtt.eclipseprojects.io"
+        help
+            URL of the broker to connect to
 endmenu
