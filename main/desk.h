@@ -2,7 +2,6 @@
 #define AUTONOMOUS_DESK
 
 #include <stdint.h>
-#include "mqtt.h"
 #include "uart.h"
 
 typedef enum {
@@ -28,7 +27,14 @@ static const button_t presets[4] = {button_1, button_2, button_3, button_4};
 
 static const uint8_t position_threshold = 2;
 static const uint8_t idle_threshold = 50;
+static const uint32_t send_delay = 100 / portTICK_PERIOD_MS;
 
-void desk_mqtt_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
+static const char* data_topic = "autonomous/desk1/data";
+static const char* cmd_height_topic = "autonomous/desk1/command/height";
+static const char* cmd_preset_topic = "autonomous/desk1/command/preset";
+
+void go_to_height(position_t desired, position_t* position);
+
+void go_to_preset(uint8_t preset, position_t* position);
 
 #endif // AUTONOMOUS_DESK
