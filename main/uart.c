@@ -21,9 +21,12 @@ void uart_init(void) {
     ESP_ERROR_CHECK(uart_set_mode(UART_PORT, UART_MODE_RS485_HALF_DUPLEX));
 }
 
-esp_err_t uart_write(uint8_t* data, int len) {
-    uart_write_bytes(UART_PORT, (char*)data, len);
-    return uart_wait_tx_done(UART_PORT, 100);
+static void build_command(uint8_t* buf, uint8_t button) {
+    buf[0] = send_hdr1;
+    buf[1] = send_hdr1;
+    buf[2] = send_hdr2;
+    buf[3] = button;
+    buf[4] = button;
 }
 
 static uint8_t decode_position(uint8_t *buf) {
@@ -33,6 +36,13 @@ static uint8_t decode_position(uint8_t *buf) {
     if(buf[3] != recv_hdr2a && buf[3] != recv_hdr2b) { return err_position; };
     if(buf[4] != buf[5]) { return err_position; };
     return buf[4];
+}
+
+void send_command(uint8_t command) {
+    uint8_t data[WRITE_BUF] = {0};
+    build_command(data, command);
+    uart_write_bytes(UART_PORT, (char*)data, WRITE_BUF);
+    uart_wait_tx_done(UART_PORT, 100);
 }
 
 void uart_event_handler(void *data) {

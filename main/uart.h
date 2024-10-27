@@ -18,9 +18,12 @@ static const uint8_t recv_hdr2a = 0x0;
 static const uint8_t recv_hdr2b = 0x3;
 static const uint8_t err_position = 0xFF;
 
+static const uint8_t send_hdr1 = 0xD8;
+static const uint8_t send_hdr2 = 0x66;
+
 void uart_init(void);
 
-esp_err_t uart_write(uint8_t* data, int len);
+void send_command(uint8_t command);
 
 void uart_event_handler(void* data);
 
