@@ -8,9 +8,51 @@
 
 static const char *tag = "main";
 static esp_mqtt_client_handle_t mqtt_cli;
-static const char* data_topic = "autonomous/desk1/data";
 
-void read_pos(void* data) {
+void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+    uint8_t* position = (uint8_t*) handler_args;
+    esp_mqtt_event_handle_t event = event_data;
+    esp_mqtt_client_handle_t client = event->client;
+
+    switch ((esp_mqtt_event_id_t)event_id) {
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGD(tag, "Connected to broker");
+        esp_mqtt_client_subscribe(client, cmd_height_topic, 2);
+        esp_mqtt_client_subscribe(client, cmd_preset_topic, 2);
+        break;
+    case MQTT_EVENT_SUBSCRIBED:
+        ESP_LOGD(tag, "Subscribed to topic");
+        break;
+    case MQTT_EVENT_DATA:
+        ESP_LOGD(tag, "Received message %.*s of length %d on topic %s", event->data_len, event->data, event->data_len, event->topic);
+        char* payload = event->data;
+        payload[event->data_len] = '\0';
+        int value = 0;
+        if (sscanf(payload, "%d", &value) == 1) {
+            ESP_LOGD(tag, "Received data: %d\n", value);
+            if (strcmp(cmd_height_topic, event->topic) == 0) {
+                if ((value <= position_low) || (value >= position_high)) {
+                    ESP_LOGW(tag, "Got invalid height %d\n", value);
+                    break;
+                }
+                go_to_height((position_t)value, position);
+            } else if (strcmp(cmd_preset_topic, event->topic) == 0) {
+                if ((value < 1) || (value > sizeof(presets))) {
+                    ESP_LOGW(tag, "Got invalid preset %d\n", value);
+                    break;
+                }
+                go_to_preset((uint8_t)value, position);
+            }
+        } else {
+            ESP_LOGD(tag, "Message not matched");
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void mqtt_publish_position(void* data) {
     char position_c[4];
     for (;;) {
         position_t* position = (uint8_t*) data;
@@ -18,6 +60,7 @@ void read_pos(void* data) {
         esp_mqtt_client_enqueue(mqtt_cli, data_topic, position_c, 0, 1, 0, false);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+    vTaskDelete(NULL);
 }
 
 void app_main(void) {
@@ -40,17 +83,15 @@ void app_main(void) {
     ESP_LOGI(tag, "Initializing WiFi");
     wifi_init();
 
-    ESP_LOGI(tag, "Initializing MQTT");
-    mqtt_cli = mqtt_init();
-
-    ESP_LOGI(tag, "Initializing UART");
-    uart_init();
-
     ESP_LOGI(tag, "Starting UART event handler");
-    xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void*) position, 10, NULL);
+    uart_init();
+    xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void*) position, 2, NULL);
+
     ESP_LOGI(tag, "Starting MQTT event handler");
-    esp_mqtt_client_register_event(mqtt_cli, ESP_EVENT_ANY_ID, desk_mqtt_handler, (void*) position);
+    mqtt_cli = mqtt_init();
+    esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler, (void*) position);
     esp_mqtt_client_start(mqtt_cli);
+
     ESP_LOGI(tag, "Starting position exporter");
-    xTaskCreate(read_pos, "read_pos_loop", 2048, (void*) position, 10, NULL);
+    xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048, (void*) position, 5, NULL);
 }
