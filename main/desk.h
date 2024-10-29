@@ -33,6 +33,8 @@ static const char* data_topic = "autonomous/desk1/data";
 static const char* cmd_height_topic = "autonomous/desk1/command/height";
 static const char* cmd_preset_topic = "autonomous/desk1/command/preset";
 
+bool valid_position(position_t position);
+
 void go_to_height(position_t desired, position_t* position);
 
 void go_to_preset(uint8_t preset, position_t* position);

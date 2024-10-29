@@ -3,6 +3,13 @@
 
 static const char *tag = "desk";
 
+bool valid_position(position_t position) {
+    if ((position >= position_low) && (position <= position_high)) {
+        return true;
+    }
+    return false;
+}
+
 void go_to_height(position_t desired, position_t* position) {
     ESP_LOGI(tag, "Moving to height %d\n", desired);
     position_t current = *position;

@@ -31,7 +31,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         if (sscanf(payload, "%d", &value) == 1) {
             ESP_LOGD(tag, "Received data: %d\n", value);
             if (strcmp(cmd_height_topic, event->topic) == 0) {
-                if ((value <= position_low) || (value >= position_high)) {
+                if (!valid_position(value)) {
                     ESP_LOGW(tag, "Got invalid height %d\n", value);
                     break;
                 }
@@ -56,8 +56,10 @@ void mqtt_publish_position(void* data) {
     char position_c[4];
     for (;;) {
         position_t* position = (uint8_t*) data;
-        sprintf(position_c, "%u", *position);
-        esp_mqtt_client_enqueue(mqtt_cli, data_topic, position_c, 0, 1, 0, false);
+        if (valid_position(*position)) {
+            sprintf(position_c, "%u", *position);
+            esp_mqtt_client_enqueue(mqtt_cli, data_topic, position_c, 0, 1, 0, false);
+        }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
     vTaskDelete(NULL);
