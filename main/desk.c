@@ -11,7 +11,7 @@ bool valid_position(position_t position) {
 }
 
 void go_to_height(position_t desired, position_t* position) {
-    ESP_LOGI(tag, "Moving to height %d\n", desired);
+    ESP_LOGI(tag, "Moving to height %d", desired);
     position_t current = *position;
     bool done = false;
     if (desired == current) {
@@ -31,20 +31,20 @@ void go_to_height(position_t desired, position_t* position) {
         vTaskDelay(send_delay);
         send_command(direction);
         current = *position;
-        ESP_LOGD(tag, "position: %d\n", current);
+        ESP_LOGD(tag, "position: %d", current);
 
         if (direction == button_up) {
-          ESP_LOGD(tag, "current %d >= desired %d\n", current, desired);
+          ESP_LOGD(tag, "current %d >= desired %d", current, desired);
           done = (current >= desired - position_threshold);
         } else {
-          ESP_LOGD(tag, "current %d <= desired %d\n", current, desired);
+          ESP_LOGD(tag, "current %d <= desired %d", current, desired);
           done = (current <= desired + position_threshold);
         }
     }
 }
 
 void go_to_preset(uint8_t preset, position_t* position) {
-    ESP_LOGI(tag, "Moving to preset %d\n", preset);
+    ESP_LOGI(tag, "Moving to preset %d", preset);
     button_t button = presets[preset-1];
     position_t last = *position;
     bool done = false;
@@ -56,7 +56,7 @@ void go_to_preset(uint8_t preset, position_t* position) {
         vTaskDelay(send_delay);
         send_command(button);
         position_t current = *position;
-        ESP_LOGD(tag, "position: 0x%X; idle:%d\n", current, idle);
+        ESP_LOGD(tag, "position: 0x%X; idle:%d", current, idle);
 
         if(last == current) {
             idle++;
