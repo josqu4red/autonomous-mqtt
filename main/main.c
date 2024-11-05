@@ -37,7 +37,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
                 }
                 go_to_height((position_t)value, position);
             } else if (strcmp(cmd_preset_topic, event->topic) == 0) {
-                if ((value < 1) || (value > sizeof(presets))) {
+                if ((value < 1) || (value > (sizeof(presets)/sizeof(*presets)))) {
                     ESP_LOGW(tag, "Got invalid preset %d", value);
                     break;
                 }
