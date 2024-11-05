@@ -29,16 +29,16 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         payload[event->data_len] = '\0';
         int value = 0;
         if (sscanf(payload, "%d", &value) == 1) {
-            ESP_LOGD(tag, "Received data: %d\n", value);
+            ESP_LOGD(tag, "Received data: %d", value);
             if (strcmp(cmd_height_topic, event->topic) == 0) {
                 if (!valid_position(value)) {
-                    ESP_LOGW(tag, "Got invalid height %d\n", value);
+                    ESP_LOGW(tag, "Got invalid height %d", value);
                     break;
                 }
                 go_to_height((position_t)value, position);
             } else if (strcmp(cmd_preset_topic, event->topic) == 0) {
                 if ((value < 1) || (value > sizeof(presets))) {
-                    ESP_LOGW(tag, "Got invalid preset %d\n", value);
+                    ESP_LOGW(tag, "Got invalid preset %d", value);
                     break;
                 }
                 go_to_preset((uint8_t)value, position);
