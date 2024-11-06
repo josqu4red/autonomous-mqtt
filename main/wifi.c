@@ -1,4 +1,5 @@
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "wifi.h"
 
 static EventGroupHandle_t s_wifi_event_group;
@@ -31,7 +32,8 @@ void wifi_init(void) {
 
     ESP_ERROR_CHECK(esp_netif_init());
 
-    esp_netif_create_default_wifi_sta();
+    esp_netif_t *netif = esp_netif_create_default_wifi_sta();
+    esp_netif_set_hostname(netif, HOSTNAME);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));

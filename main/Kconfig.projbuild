@@ -2,6 +2,12 @@ menu "Autonomous controller configuration"
 
     orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
 
+    config AUTONOMOUS_HOSTNAME
+        string "Hostname"
+        default "autonomous"
+        help
+            Device hostname.
+
     config AUTONOMOUS_UART_NUM
         int "UART port number"
         range 0 2 if IDF_TARGET_ESP32 || IDF_TARGET_ESP32S3
