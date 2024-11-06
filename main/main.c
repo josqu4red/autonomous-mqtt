@@ -13,38 +13,39 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     uint8_t* position = (uint8_t*) handler_args;
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
+    char action[6]; // TODO prevent buffer overflow
+    int value = 0;
 
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGD(tag, "Connected to broker");
-        esp_mqtt_client_subscribe(client, cmd_height_topic, 2);
-        esp_mqtt_client_subscribe(client, cmd_preset_topic, 2);
+        esp_mqtt_client_subscribe(client, command_topic, 2);
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGD(tag, "Subscribed to topic");
         break;
     case MQTT_EVENT_DATA:
-        ESP_LOGD(tag, "Received message %.*s of length %d on topic %s", event->data_len, event->data, event->data_len, event->topic);
+        ESP_LOGD(tag, "Received message %.*s of length %d", event->data_len, event->data, event->data_len);
         char* payload = event->data;
         payload[event->data_len] = '\0';
-        int value = 0;
-        if (sscanf(payload, "%d", &value) == 1) {
-            ESP_LOGD(tag, "Received data: %d", value);
-            if (strcmp(cmd_height_topic, event->topic) == 0) {
+        if (sscanf(payload, "%[^=]=%d", action, &value) == 2) {
+            if (strcmp("height", action) == 0) {
                 if (!valid_position(value)) {
-                    ESP_LOGW(tag, "Got invalid height %d", value);
+                    ESP_LOGW(tag, "Invalid height '%d'", value);
                     break;
                 }
                 go_to_height((position_t)value, position);
-            } else if (strcmp(cmd_preset_topic, event->topic) == 0) {
+            } else if (strcmp("preset", action) == 0) {
                 if ((value < 1) || (value > (sizeof(presets)/sizeof(*presets)))) {
-                    ESP_LOGW(tag, "Got invalid preset %d", value);
+                    ESP_LOGW(tag, "Invalid preset '%d'", value);
                     break;
                 }
                 go_to_preset((uint8_t)value, position);
+            } else {
+                ESP_LOGW(tag, "Invalid action '%s'", action);
             }
         } else {
-            ESP_LOGD(tag, "Message not matched");
+            ESP_LOGW(tag, "Invalid message '%s'", payload);
         }
         break;
     default:
@@ -58,7 +59,7 @@ void mqtt_publish_position(void* data) {
         position_t* position = (uint8_t*) data;
         if (valid_position(*position)) {
             sprintf(position_c, "%u", *position);
-            esp_mqtt_client_enqueue(mqtt_cli, data_topic, position_c, 0, 1, 0, false);
+            esp_mqtt_client_enqueue(mqtt_cli, state_topic, position_c, 0, 1, 0, false);
         }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

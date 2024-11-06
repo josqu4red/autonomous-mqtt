@@ -29,9 +29,8 @@ static const uint8_t position_threshold = 2;
 static const uint8_t idle_threshold = 50;
 static const uint32_t send_delay = 100 / portTICK_PERIOD_MS;
 
-static const char* data_topic = "autonomous/desk1/data";
-static const char* cmd_height_topic = "autonomous/desk1/command/height";
-static const char* cmd_preset_topic = "autonomous/desk1/command/preset";
+static const char* state_topic = "autonomous/desk1/data";
+static const char* command_topic = "autonomous/desk1/set";
 
 bool valid_position(position_t position);
 
