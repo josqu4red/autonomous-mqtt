@@ -79,4 +79,16 @@ menu "Autonomous controller configuration"
         default "mqtt://mqtt.eclipseprojects.io"
         help
             URL of the broker to connect to
+
+    config AUTONOMOUS_MQTT_BROKER_USERNAME
+        string "MQTT broker username"
+        default "user"
+        help
+            Username to connect as
+
+    config AUTONOMOUS_MQTT_BROKER_PASSWORD
+        string "MQTT broker password"
+        default "pass"
+        help
+            Password for username
 endmenu
