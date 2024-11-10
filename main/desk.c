@@ -3,6 +3,20 @@
 
 static const char *tag = "desk";
 
+static void build_command(uint8_t* buf, button_t button) {
+    buf[0] = SEND_HEADER1;
+    buf[1] = SEND_HEADER1;
+    buf[2] = SEND_HEADER2;
+    buf[3] = button;
+    buf[4] = button;
+}
+
+static void send_command(button_t command) {
+    uint8_t data[WRITE_BUF] = {0};
+    build_command(data, command);
+    uart_write(data, WRITE_BUF);
+}
+
 bool valid_position(position_t position) {
     if ((position >= position_low) && (position <= position_high)) {
         return true;
@@ -25,10 +39,10 @@ void go_to_height(position_t desired, position_t* position) {
         direction = button_up;
     }
 
-    send_command(button_none);
+    send_command(button_start);
 
     while(!done) {
-        vTaskDelay(send_delay);
+        vTaskDelay(SEND_DELAY);
         send_command(direction);
         current = *position;
         ESP_LOGD(tag, "position: %d", current);
@@ -43,20 +57,20 @@ void go_to_height(position_t desired, position_t* position) {
     }
 }
 
-void go_to_preset(uint8_t preset, position_t* position) {
+void go_to_preset(button_t preset, position_t* position) {
     ESP_LOGI(tag, "Moving to preset %d", preset);
     button_t button = presets[preset-1];
     position_t last = *position;
     bool done = false;
     int idle = 0;
 
-    send_command(button_none);
+    send_command(button_start);
 
     while(!done) {
-        vTaskDelay(send_delay);
+        vTaskDelay(SEND_DELAY);
         send_command(button);
         position_t current = *position;
-        ESP_LOGD(tag, "position: 0x%X; idle:%d", current, idle);
+        ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
 
         if(last == current) {
             idle++;
