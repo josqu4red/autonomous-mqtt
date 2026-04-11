@@ -1,4 +1,5 @@
 #include <stdatomic.h>
+#include <string.h>
 #include "esp_log.h"
 #include "uart.h"
 
@@ -38,35 +39,49 @@ static uint8_t decode_position(uint8_t *buf) {
 
 void uart_event_handler(void *data) {
     uart_event_t event;
-    uint8_t* arg = (uint8_t*) data;
-    uint8_t msg[READ_BUF] = {0};
+    _Atomic uint8_t* arg = (_Atomic uint8_t*) data;
+    uint8_t buf[FRAME_BUF] = {0};
+    int buf_len = 0;
+
     for (;;) {
-        if (xQueueReceive(uart0_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
-            switch (event.type) {
-            case UART_DATA:
-                uart_read_bytes(UART_PORT, msg, event.size, portMAX_DELAY);
-                ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", msg[0], msg[1], msg[2], msg[3], msg[4], msg[5]);
-                atomic_store((_Atomic uint8_t*)arg, decode_position(msg));
-                break;
-            case UART_FIFO_OVF:
-                // If fifo overflow happened, you should consider adding flow control for your application.
-                // The ISR has already reset the rx FIFO,
-                // As an example, we directly flush the rx buffer here in order to read more data.
-                ESP_LOGD(tag, "FIFO overflow");
-                uart_flush_input(UART_PORT);
-                xQueueReset(uart0_queue);
-                break;
-            case UART_BUFFER_FULL:
-                // If buffer full happened, you should consider increasing your buffer size
-                // As an example, we directly flush the rx buffer here in order to read more data.
-                ESP_LOGD(tag, "RX buffer full");
-                uart_flush_input(UART_PORT);
-                xQueueReset(uart0_queue);
-                break;
-            default:
-                ESP_LOGD(tag, "uart event type: %d", event.type);
-                break;
+        if (!xQueueReceive(uart0_queue, (void*)&event, (TickType_t)portMAX_DELAY)) {
+            continue;
+        }
+        switch (event.type) {
+        case UART_DATA: {
+            int len = uart_read_bytes(UART_PORT, buf + buf_len, sizeof(buf) - buf_len, 0);
+            buf_len += len;
+
+            int i = 0;
+            while (i <= buf_len - READ_BUF) {
+                if (buf[i] == recv_hdr1 && buf[i+1] == recv_hdr1) {
+                    ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X",
+                             buf[i], buf[i+1], buf[i+2], buf[i+3], buf[i+4], buf[i+5]);
+                    atomic_store(arg, decode_position(buf + i));
+                    i += READ_BUF;
+                } else {
+                    i++;
+                }
             }
+            buf_len -= i;
+            memmove(buf, buf + i, buf_len);
+            break;
+        }
+        case UART_FIFO_OVF:
+            ESP_LOGD(tag, "FIFO overflow");
+            uart_flush_input(UART_PORT);
+            xQueueReset(uart0_queue);
+            buf_len = 0;
+            break;
+        case UART_BUFFER_FULL:
+            ESP_LOGD(tag, "RX buffer full");
+            uart_flush_input(UART_PORT);
+            xQueueReset(uart0_queue);
+            buf_len = 0;
+            break;
+        default:
+            ESP_LOGD(tag, "uart event type: %d", event.type);
+            break;
         }
     }
     vTaskDelete(NULL);
