@@ -3,7 +3,12 @@
 #include "esp_log.h"
 #include "uart.h"
 
-static char* tag = "uart";
+static const char* tag = "uart";
+
+static const uint8_t recv_hdr1    = 0x98;
+static const uint8_t recv_hdr2a   = 0x00;
+static const uint8_t recv_hdr2b   = 0x03;
+static const uint8_t err_position = 0xFF;
 static QueueHandle_t uart0_queue;
 
 void uart_init(void) {
