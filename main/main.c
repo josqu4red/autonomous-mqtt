@@ -1,6 +1,7 @@
 #include <stdatomic.h>
 #include <stdio.h>
 #include "esp_log.h"
+#include "freertos/queue.h"
 #include "nvs_flash.h"
 #include "desk.h"
 #include "mqtt.h"
@@ -10,8 +11,14 @@
 static const char *tag = "main";
 static esp_mqtt_client_handle_t mqtt_cli;
 
+typedef struct {
+    _Atomic position_t* position;
+    QueueHandle_t       cmd_queue;
+    atomic_bool*        cancel;
+} desk_ctx_t;
+
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
-    _Atomic position_t* position = (_Atomic position_t*) handler_args;
+    desk_ctx_t* ctx = (desk_ctx_t*) handler_args;
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     char action[8];
@@ -30,21 +37,27 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
         char* payload = event->data;
         payload[event->data_len] = '\0';
         if (sscanf(payload, "%7[^=]=%d", action, &value) == 2) {
+            desk_cmd_t cmd = {0};
             if (strcmp("height", action) == 0) {
                 if (!valid_position(value)) {
                     ESP_LOGW(tag, "Invalid height '%d'", value);
                     break;
                 }
-                go_to_height((position_t)value, position);
+                cmd.type = CMD_HEIGHT;
+                cmd.value = (uint8_t)value;
             } else if (strcmp("preset", action) == 0) {
-                if ((value < 1) || (value > (sizeof(presets)/sizeof(*presets)))) {
+                if ((value < 1) || (value > (int)(sizeof(presets)/sizeof(*presets)))) {
                     ESP_LOGW(tag, "Invalid preset '%d'", value);
                     break;
                 }
-                go_to_preset((uint8_t)value, position);
+                cmd.type = CMD_PRESET;
+                cmd.value = (uint8_t)value;
             } else {
                 ESP_LOGW(tag, "Invalid action '%s'", action);
+                break;
             }
+            atomic_store(ctx->cancel, true);
+            xQueueOverwrite(ctx->cmd_queue, &cmd);
         } else {
             ESP_LOGW(tag, "Invalid message '%s'", payload);
         }
@@ -52,6 +65,22 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     default:
         break;
     }
+}
+
+void desk_control_task(void* data) {
+    desk_ctx_t* ctx = (desk_ctx_t*) data;
+    desk_cmd_t cmd;
+    for (;;) {
+        if (xQueueReceive(ctx->cmd_queue, &cmd, portMAX_DELAY)) {
+            atomic_store(ctx->cancel, false);
+            if (cmd.type == CMD_HEIGHT) {
+                go_to_height((position_t)cmd.value, ctx->position, ctx->cancel);
+            } else {
+                go_to_preset(cmd.value, ctx->position, ctx->cancel);
+            }
+        }
+    }
+    vTaskDelete(NULL);
 }
 
 void mqtt_publish_position(void* data) {
@@ -95,13 +124,16 @@ void app_main(void) {
 
     ESP_LOGI(tag, "Starting UART event handler");
     uart_init();
-    xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void*) position, 2, NULL);
+    xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void*) &position, 2, NULL);
 
     ESP_LOGI(tag, "Starting MQTT event handler");
     mqtt_cli = mqtt_init();
-    esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler, (void*) position);
+    esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler, (void*) &ctx);
     esp_mqtt_client_start(mqtt_cli);
 
+    ESP_LOGI(tag, "Starting desk control task");
+    xTaskCreate(desk_control_task, "desk_control_task", 2048, (void*) &ctx, 3, NULL);
+
     ESP_LOGI(tag, "Starting position exporter");
-    xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048, (void*) position, 5, NULL);
+    xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048, (void*) &position, 5, NULL);
 }

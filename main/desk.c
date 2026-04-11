@@ -24,7 +24,7 @@ bool valid_position(position_t position) {
     return false;
 }
 
-void go_to_height(position_t desired, _Atomic position_t* position) {
+void go_to_height(position_t desired, _Atomic position_t* position, atomic_bool* cancel) {
     ESP_LOGI(tag, "Moving to height %d", desired);
     position_t current = atomic_load(position);
     bool done = false;
@@ -41,7 +41,7 @@ void go_to_height(position_t desired, _Atomic position_t* position) {
 
     send_command(button_start);
 
-    while(!done) {
+    while (!done && !atomic_load(cancel)) {
         vTaskDelay(SEND_DELAY);
         send_command(direction);
         current = atomic_load(position);
@@ -57,7 +57,7 @@ void go_to_height(position_t desired, _Atomic position_t* position) {
     }
 }
 
-void go_to_preset(button_t preset, _Atomic position_t* position) {
+void go_to_preset(uint8_t preset, _Atomic position_t* position, atomic_bool* cancel) {
     ESP_LOGI(tag, "Moving to preset %d", preset);
     button_t button = presets[preset-1];
     position_t last = atomic_load(position);
@@ -66,7 +66,7 @@ void go_to_preset(button_t preset, _Atomic position_t* position) {
 
     send_command(button_start);
 
-    while(!done) {
+    while (!done && !atomic_load(cancel)) {
         vTaskDelay(SEND_DELAY);
         send_command(button);
         position_t current = atomic_load(position);
