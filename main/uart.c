@@ -1,3 +1,4 @@
+#include <stdatomic.h>
 #include "esp_log.h"
 #include "uart.h"
 
@@ -45,7 +46,7 @@ void uart_event_handler(void *data) {
             case UART_DATA:
                 uart_read_bytes(UART_PORT, msg, event.size, portMAX_DELAY);
                 ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", msg[0], msg[1], msg[2], msg[3], msg[4], msg[5]);
-                *arg = decode_position(msg);
+                atomic_store((_Atomic uint8_t*)arg, decode_position(msg));
                 break;
             case UART_FIFO_OVF:
                 // If fifo overflow happened, you should consider adding flow control for your application.

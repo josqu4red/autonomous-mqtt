@@ -1,6 +1,7 @@
 #ifndef AUTONOMOUS_DESK
 #define AUTONOMOUS_DESK
 
+#include <stdatomic.h>
 #include <stdint.h>
 #include "uart.h"
 
@@ -38,8 +39,8 @@ static const char* command_topic = "autonomous/desk1/set";
 
 bool valid_position(position_t position);
 
-void go_to_height(position_t desired, position_t* position);
+void go_to_height(position_t desired, _Atomic position_t* position);
 
-void go_to_preset(button_t preset, position_t* position);
+void go_to_preset(button_t preset, _Atomic position_t* position);
 
 #endif // AUTONOMOUS_DESK

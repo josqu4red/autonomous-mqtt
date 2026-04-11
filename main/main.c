@@ -1,3 +1,4 @@
+#include <stdatomic.h>
 #include <stdio.h>
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -10,7 +11,7 @@ static const char *tag = "main";
 static esp_mqtt_client_handle_t mqtt_cli;
 
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
-    uint8_t* position = (uint8_t*) handler_args;
+    _Atomic position_t* position = (_Atomic position_t*) handler_args;
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
     char action[6]; // TODO prevent buffer overflow
@@ -56,9 +57,10 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 void mqtt_publish_position(void* data) {
     char position_c[4];
     for (;;) {
-        position_t* position = (uint8_t*) data;
-        if (valid_position(*position)) {
-            sprintf(position_c, "%u", *position);
+        _Atomic position_t* position = (_Atomic position_t*) data;
+        position_t pos = atomic_load(position);
+        if (valid_position(pos)) {
+            sprintf(position_c, "%u", pos);
             esp_mqtt_client_enqueue(mqtt_cli, state_topic, position_c, 0, 1, 0, false);
         }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -71,7 +73,12 @@ void app_main(void) {
     esp_log_level_set("main", ESP_LOG_DEBUG);
     esp_log_level_set("desk", ESP_LOG_DEBUG);
 
-    position_t position[1] = {0};
+    static _Atomic position_t position = 0;
+    static atomic_bool cancel = false;
+    static desk_ctx_t ctx;
+    ctx.position  = &position;
+    ctx.cmd_queue = xQueueCreate(1, sizeof(desk_cmd_t));
+    ctx.cancel    = &cancel;
 
     ESP_LOGI(tag, "Initializing NV storage");
     esp_err_t ret = nvs_flash_init();
