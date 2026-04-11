@@ -29,13 +29,12 @@ typedef enum {
 
 typedef uint8_t position_t;
 
-static const button_t presets[4] = {button_1, button_2, button_3, button_4};
+#define position_threshold 2
+#define idle_threshold     50
 
-static const uint8_t position_threshold = 2;
-static const uint8_t idle_threshold = 50;
-
-static const char* state_topic = "autonomous/desk1/data";
-static const char* command_topic = "autonomous/desk1/set";
+extern const button_t presets[4];
+extern const char* state_topic;
+extern const char* command_topic;
 
 typedef enum { CMD_HEIGHT, CMD_PRESET } cmd_type_t;
 

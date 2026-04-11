@@ -3,6 +3,10 @@
 
 static const char *tag = "desk";
 
+const button_t presets[4] = {button_1, button_2, button_3, button_4};
+const char* state_topic    = "autonomous/desk1/data";
+const char* command_topic  = "autonomous/desk1/set";
+
 static void build_command(uint8_t* buf, button_t button) {
     buf[0] = SEND_HEADER1;
     buf[1] = SEND_HEADER1;
