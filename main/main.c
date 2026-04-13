@@ -11,7 +11,7 @@ static esp_mqtt_client_handle_t mqtt_cli;
 
 void mqtt_event_handler(void *handler_args, esp_event_base_t base,
                         int32_t event_id, void *event_data) {
-  uint8_t *position = (uint8_t *)handler_args;
+  shared_position_t *position = (shared_position_t *)handler_args;
   esp_mqtt_event_handle_t event = event_data;
   esp_mqtt_client_handle_t client = event->client;
   char action[6]; // TODO prevent buffer overflow
@@ -57,10 +57,11 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base,
 
 void mqtt_publish_position(void *data) {
   char position_c[4];
+  shared_position_t *shared = (shared_position_t *)data;
   for (;;) {
-    position_t *position = (uint8_t *)data;
-    if (valid_position(*position)) {
-      sprintf(position_c, "%u", *position);
+    position_t pos = atomic_load(shared);
+    if (valid_position(pos)) {
+      snprintf(position_c, sizeof(position_c), "%u", pos);
       esp_mqtt_client_enqueue(mqtt_cli, state_topic, position_c, 0, 1, 0,
                               false);
     }
@@ -74,7 +75,7 @@ void app_main(void) {
   esp_log_level_set("main", ESP_LOG_DEBUG);
   esp_log_level_set("desk", ESP_LOG_DEBUG);
 
-  position_t position[1] = {0};
+  shared_position_t position = 0;
 
   ESP_LOGI(tag, "Initializing NV storage");
   esp_err_t ret = nvs_flash_init();
@@ -92,16 +93,16 @@ void app_main(void) {
 
   ESP_LOGI(tag, "Starting UART event handler");
   uart_init();
-  xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void *)position,
+  xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void *)&position,
               2, NULL);
 
   ESP_LOGI(tag, "Starting MQTT event handler");
   mqtt_cli = mqtt_init();
   esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler,
-                                 (void *)position);
+                                 (void *)&position);
   esp_mqtt_client_start(mqtt_cli);
 
   ESP_LOGI(tag, "Starting position exporter");
   xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048,
-              (void *)position, 5, NULL);
+              (void *)&position, 5, NULL);
 }

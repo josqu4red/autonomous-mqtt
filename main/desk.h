@@ -2,6 +2,7 @@
 #define AUTONOMOUS_DESK
 
 #include "uart.h"
+#include <stdatomic.h>
 #include <stdint.h>
 
 #define WRITE_BUF 5
@@ -28,6 +29,8 @@ typedef enum {
 
 typedef uint8_t position_t;
 
+typedef _Atomic uint8_t shared_position_t;
+
 static const button_t presets[4] = {button_1, button_2, button_3, button_4};
 
 static const uint8_t position_threshold = 2;
@@ -38,8 +41,8 @@ static const char *command_topic = "autonomous/desk1/set";
 
 bool valid_position(position_t position);
 
-void go_to_height(position_t desired, position_t *position);
+void go_to_height(position_t desired, shared_position_t *position);
 
-void go_to_preset(button_t preset, position_t *position);
+void go_to_preset(button_t preset, shared_position_t *position);
 
 #endif // AUTONOMOUS_DESK

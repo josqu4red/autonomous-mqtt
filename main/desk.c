@@ -24,9 +24,9 @@ bool valid_position(position_t position) {
   return false;
 }
 
-void go_to_height(position_t desired, position_t *position) {
+void go_to_height(position_t desired, shared_position_t *shared) {
   ESP_LOGI(tag, "Moving to height %d", desired);
-  position_t current = *position;
+  position_t current = atomic_load(shared);
   bool done = false;
   if (desired == current) {
     return;
@@ -44,7 +44,7 @@ void go_to_height(position_t desired, position_t *position) {
   while (!done) {
     vTaskDelay(SEND_DELAY);
     send_command(direction);
-    current = *position;
+    current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d", current);
 
     if (direction == button_up) {
@@ -57,10 +57,10 @@ void go_to_height(position_t desired, position_t *position) {
   }
 }
 
-void go_to_preset(button_t preset, position_t *position) {
+void go_to_preset(button_t preset, shared_position_t *shared) {
   ESP_LOGI(tag, "Moving to preset %d", preset);
   button_t button = presets[preset - 1];
-  position_t last = *position;
+  position_t last = atomic_load(shared);
   bool done = false;
   int idle = 0;
 
@@ -69,7 +69,7 @@ void go_to_preset(button_t preset, position_t *position) {
   while (!done) {
     vTaskDelay(SEND_DELAY);
     send_command(button);
-    position_t current = *position;
+    position_t current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
 
     if (last == current) {
