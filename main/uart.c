@@ -67,19 +67,12 @@ void uart_event_handler(void *data) {
         atomic_store(shared, decode_position(msg));
         break;
       case UART_FIFO_OVF:
-        // If fifo overflow happened, you should consider adding flow control
-        // for your application. The ISR has already reset the rx FIFO, As an
-        // example, we directly flush the rx buffer here in order to read more
-        // data.
-        ESP_LOGD(tag, "FIFO overflow");
+        ESP_LOGW(tag, "FIFO overflow — data lost");
         uart_flush_input(UART_PORT);
         xQueueReset(uart0_queue);
         break;
       case UART_BUFFER_FULL:
-        // If buffer full happened, you should consider increasing your buffer
-        // size As an example, we directly flush the rx buffer here in order to
-        // read more data.
-        ESP_LOGD(tag, "RX buffer full");
+        ESP_LOGW(tag, "RX buffer full — data lost");
         uart_flush_input(UART_PORT);
         xQueueReset(uart0_queue);
         break;
