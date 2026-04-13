@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "wifi.h"
 #include <stdio.h>
+#include <string.h>
 
 static const char *tag = "main";
 static esp_mqtt_client_handle_t mqtt_cli;
@@ -14,8 +15,6 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base,
   shared_position_t *position = (shared_position_t *)handler_args;
   esp_mqtt_event_handle_t event = event_data;
   esp_mqtt_client_handle_t client = event->client;
-  char action[6]; // TODO prevent buffer overflow
-  int value = 0;
 
   switch ((esp_mqtt_event_id_t)event_id) {
   case MQTT_EVENT_CONNECTED:
@@ -25,12 +24,19 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base,
   case MQTT_EVENT_SUBSCRIBED:
     ESP_LOGD(tag, "Subscribed to topic");
     break;
-  case MQTT_EVENT_DATA:
+  case MQTT_EVENT_DATA: {
     ESP_LOGD(tag, "Received message %.*s of length %d", event->data_len,
              event->data, event->data_len);
-    char *payload = event->data;
+    if (event->data_len >= 16) {
+      ESP_LOGW(tag, "Payload too long (%d bytes), ignoring", event->data_len);
+      break;
+    }
+    char payload[16];
+    memcpy(payload, event->data, event->data_len);
     payload[event->data_len] = '\0';
-    if (sscanf(payload, "%[^=]=%d", action, &value) == 2) {
+    char action[8];
+    int value = 0;
+    if (sscanf(payload, "%7[^=]=%d", action, &value) == 2) {
       if (strcmp("height", action) == 0) {
         if (!valid_position(value)) {
           ESP_LOGW(tag, "Invalid height '%d'", value);
@@ -50,6 +56,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base,
       ESP_LOGW(tag, "Invalid message '%s'", payload);
     }
     break;
+  }
   default:
     break;
   }
