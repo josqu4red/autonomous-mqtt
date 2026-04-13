@@ -56,7 +56,12 @@ void uart_event_handler(void *data) {
     if (xQueueReceive(uart0_queue, (void *)&event, (TickType_t)portMAX_DELAY)) {
       switch (event.type) {
       case UART_DATA:
-        uart_read_bytes(UART_PORT, msg, event.size, portMAX_DELAY);
+        if (event.size != READ_BUF) {
+          ESP_LOGW(tag, "Unexpected frame size %d, flushing", event.size);
+          uart_flush_input(UART_PORT);
+          break;
+        }
+        uart_read_bytes(UART_PORT, msg, READ_BUF, portMAX_DELAY);
         ESP_LOGD(tag, "UART_DATA: 0x%X 0x%X 0x%X 0x%X 0x%X 0x%X", msg[0],
                  msg[1], msg[2], msg[3], msg[4], msg[5]);
         atomic_store(shared, decode_position(msg));
