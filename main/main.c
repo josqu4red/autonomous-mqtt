@@ -105,11 +105,11 @@ void app_main(void) {
   ESP_LOGI(tag, "Starting UART event handler");
   uart_init();
   xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void *)&position,
-              2, NULL);
+              5, NULL);
 
   ESP_LOGI(tag, "Starting desk task");
   desk_cmd_queue = xQueueCreate(1, sizeof(desk_cmd_t));
-  xTaskCreate(desk_task, "desk_task", 4096, (void *)&position, 5, NULL);
+  xTaskCreate(desk_task, "desk_task", 4096, (void *)&position, 4, NULL);
 
   ESP_LOGI(tag, "Starting MQTT event handler");
   mqtt_cli = mqtt_init();
@@ -119,5 +119,5 @@ void app_main(void) {
 
   ESP_LOGI(tag, "Starting position exporter");
   xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048,
-              (void *)&position, 5, NULL);
+              (void *)&position, 2, NULL);
 }
