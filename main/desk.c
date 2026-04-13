@@ -53,7 +53,7 @@ void go_to_height(position_t desired, shared_position_t *shared) {
   bool has_moved = false;
   TickType_t next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
 
-  while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
+  while (!done && !atomic_load(&cancel_flag) && ticks < MOVE_TIMEOUT_TICKS) {
     vTaskDelay(POLL_INTERVAL);
     current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d", current);
@@ -64,9 +64,9 @@ void go_to_height(position_t desired, shared_position_t *shared) {
     }
     if (has_moved) {
       if (direction == button_up) {
-        done = ((int16_t)current >= (int16_t)desired - (int16_t)position_threshold);
+        done = ((int16_t)current >= (int16_t)desired - (int16_t)POSITION_THRESHOLD);
       } else {
-        done = ((int16_t)current <= (int16_t)desired + (int16_t)position_threshold);
+        done = ((int16_t)current <= (int16_t)desired + (int16_t)POSITION_THRESHOLD);
       }
     }
     if (done) break;
@@ -77,7 +77,7 @@ void go_to_height(position_t desired, shared_position_t *shared) {
     }
   }
   send_command(button_start);
-  if (ticks >= move_timeout_ticks) {
+  if (ticks >= MOVE_TIMEOUT_TICKS) {
     ESP_LOGW(tag, "go_to_height timed out at position %d", current);
   }
 }
@@ -96,7 +96,7 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
   int ticks = 0;
   TickType_t next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
 
-  while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
+  while (!done && !atomic_load(&cancel_flag) && ticks < MOVE_TIMEOUT_TICKS) {
     vTaskDelay(POLL_INTERVAL);
     position_t current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
@@ -106,7 +106,7 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
       last = current;
     } else if (last == current) {
       idle++;
-      if (idle >= idle_threshold) {
+      if (idle >= IDLE_THRESHOLD) {
         done = true;
       }
     } else {
@@ -121,7 +121,7 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
     }
   }
   send_command(button_start);
-  if (ticks >= move_timeout_ticks) {
+  if (ticks >= MOVE_TIMEOUT_TICKS) {
     ESP_LOGW(tag, "go_to_preset timed out at position %d", last);
   }
 }

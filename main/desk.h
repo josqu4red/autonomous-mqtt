@@ -11,6 +11,9 @@
 #define POLL_INTERVAL        pdMS_TO_TICKS(20)
 #define CMD_INTERVAL         pdMS_TO_TICKS(150)
 #define PRESET_WARMUP_TICKS  (pdMS_TO_TICKS(2000) / POLL_INTERVAL)
+#define POSITION_THRESHOLD   CONFIG_AUTONOMOUS_POSITION_THRESHOLD
+#define IDLE_THRESHOLD       CONFIG_AUTONOMOUS_IDLE_THRESHOLD
+#define MOVE_TIMEOUT_TICKS   (pdMS_TO_TICKS(10000) / POLL_INTERVAL)
 
 typedef enum {
   button_start = 0x00,
@@ -34,10 +37,6 @@ typedef uint8_t position_t;
 typedef _Atomic uint8_t shared_position_t;
 
 static const button_t presets[4] = {button_1, button_2, button_3, button_4};
-
-#define position_threshold CONFIG_AUTONOMOUS_POSITION_THRESHOLD
-#define idle_threshold     CONFIG_AUTONOMOUS_IDLE_THRESHOLD
-#define move_timeout_ticks CONFIG_AUTONOMOUS_MOVE_TIMEOUT
 
 
 typedef enum {
