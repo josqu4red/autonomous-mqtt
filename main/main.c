@@ -104,20 +104,29 @@ void app_main(void) {
 
   ESP_LOGI(tag, "Starting UART event handler");
   uart_init();
-  xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void *)&position,
-              5, NULL);
+  ESP_ERROR_CHECK(xTaskCreate(uart_event_handler, "uart_event_handler", 2048,
+                              (void *)&position, 5, NULL) != pdPASS
+                      ? ESP_FAIL
+                      : ESP_OK);
 
   ESP_LOGI(tag, "Starting desk task");
   desk_cmd_queue = xQueueCreate(1, sizeof(desk_cmd_t));
-  xTaskCreate(desk_task, "desk_task", 4096, (void *)&position, 4, NULL);
+  ESP_ERROR_CHECK(desk_cmd_queue == NULL ? ESP_FAIL : ESP_OK);
+  ESP_ERROR_CHECK(xTaskCreate(desk_task, "desk_task", 4096, (void *)&position,
+                              4, NULL) != pdPASS
+                      ? ESP_FAIL
+                      : ESP_OK);
 
   ESP_LOGI(tag, "Starting MQTT event handler");
   mqtt_cli = mqtt_init();
+  ESP_ERROR_CHECK(mqtt_cli == NULL ? ESP_FAIL : ESP_OK);
   esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler,
                                  NULL);
   esp_mqtt_client_start(mqtt_cli);
 
   ESP_LOGI(tag, "Starting position exporter");
-  xTaskCreate(mqtt_publish_position, "mqtt_publish_position", 2048,
-              (void *)&position, 2, NULL);
+  ESP_ERROR_CHECK(xTaskCreate(mqtt_publish_position, "mqtt_publish_position",
+                              2048, (void *)&position, 2, NULL) != pdPASS
+                      ? ESP_FAIL
+                      : ESP_OK);
 }
