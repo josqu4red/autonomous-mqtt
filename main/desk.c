@@ -47,11 +47,13 @@ void go_to_height(position_t desired, shared_position_t *shared) {
 
   send_command(button_start);
 
-  while (!done && !atomic_load(&cancel_flag)) {
+  int ticks = 0;
+  while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
     vTaskDelay(SEND_DELAY);
     send_command(direction);
     current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d", current);
+    ticks++;
 
     if (direction == button_up) {
       ESP_LOGD(tag, "current %d >= desired %d", current, desired);
@@ -60,6 +62,9 @@ void go_to_height(position_t desired, shared_position_t *shared) {
       ESP_LOGD(tag, "current %d <= desired %d", current, desired);
       done = (current <= desired + position_threshold);
     }
+  }
+  if (ticks >= move_timeout_ticks) {
+    ESP_LOGW(tag, "go_to_height timed out at position %d", current);
   }
 }
 
@@ -73,11 +78,13 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
 
   send_command(button_start);
 
-  while (!done && !atomic_load(&cancel_flag)) {
+  int ticks = 0;
+  while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
     vTaskDelay(SEND_DELAY);
     send_command(button);
     position_t current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
+    ticks++;
 
     if (last == current) {
       idle++;
@@ -88,6 +95,9 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
       idle = 0;
       last = current;
     }
+  }
+  if (ticks >= move_timeout_ticks) {
+    ESP_LOGW(tag, "go_to_preset timed out at position %d", last);
   }
 }
 

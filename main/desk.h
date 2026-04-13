@@ -35,6 +35,7 @@ static const button_t presets[4] = {button_1, button_2, button_3, button_4};
 
 static const uint8_t position_threshold = 2;
 static const uint8_t idle_threshold = 50;
+static const int move_timeout_ticks = 300;
 
 static const char *state_topic = "autonomous/desk1/data";
 static const char *command_topic = "autonomous/desk1/set";
