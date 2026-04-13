@@ -8,8 +8,8 @@
 #include <string.h>
 
 static const char *tag = "main";
-static const char *state_topic = "autonomous/desk1/data";
-static const char *command_topic = "autonomous/desk1/set";
+static char state_topic[64];
+static char command_topic[64];
 static esp_mqtt_client_handle_t mqtt_cli;
 QueueHandle_t desk_cmd_queue;
 
@@ -84,6 +84,11 @@ void mqtt_publish_position(void *data) {
 }
 
 void app_main(void) {
+  snprintf(state_topic, sizeof(state_topic), "autonomous/%s/state",
+           CONFIG_AUTONOMOUS_HOSTNAME);
+  snprintf(command_topic, sizeof(command_topic), "autonomous/%s/command",
+           CONFIG_AUTONOMOUS_HOSTNAME);
+
   esp_log_level_set("*", ESP_LOG_INFO);
   esp_log_level_set("main", ESP_LOG_DEBUG);
   esp_log_level_set("desk", ESP_LOG_DEBUG);
