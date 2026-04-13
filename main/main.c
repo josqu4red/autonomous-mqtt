@@ -100,7 +100,7 @@ void app_main(void) {
   ESP_ERROR_CHECK(esp_event_loop_create_default());
 
   ESP_LOGI(tag, "Initializing WiFi");
-  wifi_init();
+  ESP_ERROR_CHECK(wifi_init());
 
   ESP_LOGI(tag, "Starting UART event handler");
   uart_init();

@@ -28,7 +28,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
   }
 }
 
-void wifi_init(void) {
+esp_err_t wifi_init(void) {
   s_wifi_event_group = xEventGroupCreate();
 
   ESP_ERROR_CHECK(esp_netif_init());
@@ -63,17 +63,19 @@ void wifi_init(void) {
   /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or
    * connection failed for the maximum number of re-tries (WIFI_FAIL_BIT). The
    * bits are set by event_handler() (see above) */
+  TickType_t timeout = pdMS_TO_TICKS(30000);
   EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                          WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-                                         pdFALSE, pdFALSE, portMAX_DELAY);
+                                         pdFALSE, pdFALSE, timeout);
 
-  /* xEventGroupWaitBits() returns the bits before the call returned, hence we
-   * can test which event actually happened. */
   if (bits & WIFI_CONNECTED_BIT) {
     ESP_LOGI(tag, "connected to ap SSID:%s", WIFI_SSID);
+    return ESP_OK;
   } else if (bits & WIFI_FAIL_BIT) {
-    ESP_LOGI(tag, "failed to connect to SSID:%s", WIFI_SSID);
+    ESP_LOGE(tag, "failed to connect to SSID:%s", WIFI_SSID);
+    return ESP_FAIL;
   } else {
-    ESP_LOGE(tag, "unexpected event");
+    ESP_LOGE(tag, "wifi_init timed out waiting for connection");
+    return ESP_ERR_TIMEOUT;
   }
 }
