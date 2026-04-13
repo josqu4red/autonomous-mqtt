@@ -39,10 +39,24 @@ static const uint8_t idle_threshold = 50;
 static const char *state_topic = "autonomous/desk1/data";
 static const char *command_topic = "autonomous/desk1/set";
 
+typedef enum {
+  CMD_HEIGHT,
+  CMD_PRESET,
+} desk_cmd_type_t;
+
+typedef struct {
+  desk_cmd_type_t type;
+  uint8_t value;
+} desk_cmd_t;
+
 bool valid_position(position_t position);
+
+void desk_cancel(void);
 
 void go_to_height(position_t desired, shared_position_t *position);
 
 void go_to_preset(button_t preset, shared_position_t *position);
+
+void desk_task(void *arg);
 
 #endif // AUTONOMOUS_DESK

@@ -9,10 +9,10 @@
 
 static const char *tag = "main";
 static esp_mqtt_client_handle_t mqtt_cli;
+QueueHandle_t desk_cmd_queue;
 
 void mqtt_event_handler(void *handler_args, esp_event_base_t base,
                         int32_t event_id, void *event_data) {
-  shared_position_t *position = (shared_position_t *)handler_args;
   esp_mqtt_event_handle_t event = event_data;
   esp_mqtt_client_handle_t client = event->client;
 
@@ -42,13 +42,17 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base,
           ESP_LOGW(tag, "Invalid height '%d'", value);
           break;
         }
-        go_to_height((position_t)value, position);
+        desk_cancel();
+        desk_cmd_t cmd = {.type = CMD_HEIGHT, .value = (uint8_t)value};
+        xQueueOverwrite(desk_cmd_queue, &cmd);
       } else if (strcmp("preset", action) == 0) {
         if ((value < 1) || (value > (sizeof(presets) / sizeof(*presets)))) {
           ESP_LOGW(tag, "Invalid preset '%d'", value);
           break;
         }
-        go_to_preset((uint8_t)value, position);
+        desk_cancel();
+        desk_cmd_t cmd = {.type = CMD_PRESET, .value = (uint8_t)value};
+        xQueueOverwrite(desk_cmd_queue, &cmd);
       } else {
         ESP_LOGW(tag, "Invalid action '%s'", action);
       }
@@ -103,10 +107,14 @@ void app_main(void) {
   xTaskCreate(uart_event_handler, "uart_event_handler", 2048, (void *)&position,
               2, NULL);
 
+  ESP_LOGI(tag, "Starting desk task");
+  desk_cmd_queue = xQueueCreate(1, sizeof(desk_cmd_t));
+  xTaskCreate(desk_task, "desk_task", 4096, (void *)&position, 5, NULL);
+
   ESP_LOGI(tag, "Starting MQTT event handler");
   mqtt_cli = mqtt_init();
   esp_mqtt_client_register_event(mqtt_cli, MQTT_EVENT_ANY, mqtt_event_handler,
-                                 (void *)&position);
+                                 NULL);
   esp_mqtt_client_start(mqtt_cli);
 
   ESP_LOGI(tag, "Starting position exporter");
