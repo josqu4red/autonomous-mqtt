@@ -102,7 +102,9 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
     ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
     ticks++;
 
-    if (last == current) {
+    if (ticks <= PRESET_WARMUP_TICKS) {
+      last = current;
+    } else if (last == current) {
       idle++;
       if (idle >= idle_threshold) {
         done = true;
