@@ -58,9 +58,9 @@ void go_to_height(position_t desired, shared_position_t *shared) {
     ticks++;
 
     if (direction == button_up) {
-      done = (current >= desired);
+      done = ((int16_t)current >= (int16_t)desired - (int16_t)position_threshold);
     } else {
-      done = (current <= desired);
+      done = ((int16_t)current <= (int16_t)desired + (int16_t)position_threshold);
     }
     if (done) break;
 
