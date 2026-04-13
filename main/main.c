@@ -88,7 +88,7 @@ void app_main(void) {
   esp_log_level_set("main", ESP_LOG_DEBUG);
   esp_log_level_set("desk", ESP_LOG_DEBUG);
 
-  shared_position_t position = 0;
+  static shared_position_t position = position_error;
 
   ESP_LOGI(tag, "Initializing NV storage");
   esp_err_t ret = nvs_flash_init();
