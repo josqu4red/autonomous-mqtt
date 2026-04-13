@@ -8,7 +8,8 @@
 #define WRITE_BUF 5
 #define SEND_HEADER1 0xD8
 #define SEND_HEADER2 0x66
-#define SEND_DELAY (100 / portTICK_PERIOD_MS)
+#define POLL_INTERVAL pdMS_TO_TICKS(20)
+#define CMD_INTERVAL  pdMS_TO_TICKS(100)
 
 typedef enum {
   button_start = 0x00,

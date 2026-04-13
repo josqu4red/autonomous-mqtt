@@ -46,23 +46,30 @@ void go_to_height(position_t desired, shared_position_t *shared) {
   }
 
   send_command(button_start);
+  send_command(direction);
 
   int ticks = 0;
+  TickType_t next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
+
   while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
-    vTaskDelay(SEND_DELAY);
-    send_command(direction);
+    vTaskDelay(POLL_INTERVAL);
     current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d", current);
     ticks++;
 
     if (direction == button_up) {
-      ESP_LOGD(tag, "current %d >= desired %d", current, desired);
-      done = (current >= desired - position_threshold);
+      done = (current >= desired);
     } else {
-      ESP_LOGD(tag, "current %d <= desired %d", current, desired);
-      done = (current <= desired + position_threshold);
+      done = (current <= desired);
+    }
+    if (done) break;
+
+    if (xTaskGetTickCount() >= next_cmd) {
+      send_command(direction);
+      next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
     }
   }
+  send_command(button_start);
   if (ticks >= move_timeout_ticks) {
     ESP_LOGW(tag, "go_to_height timed out at position %d", current);
   }
@@ -77,11 +84,13 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
   int idle = 0;
 
   send_command(button_start);
+  send_command(button);
 
   int ticks = 0;
+  TickType_t next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
+
   while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
-    vTaskDelay(SEND_DELAY);
-    send_command(button);
+    vTaskDelay(POLL_INTERVAL);
     position_t current = atomic_load(shared);
     ESP_LOGD(tag, "position: %d; idle:%d", current, idle);
     ticks++;
@@ -95,7 +104,14 @@ void go_to_preset(button_t preset, shared_position_t *shared) {
       idle = 0;
       last = current;
     }
+    if (done) break;
+
+    if (xTaskGetTickCount() >= next_cmd) {
+      send_command(button);
+      next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
+    }
   }
+  send_command(button_start);
   if (ticks >= move_timeout_ticks) {
     ESP_LOGW(tag, "go_to_preset timed out at position %d", last);
   }

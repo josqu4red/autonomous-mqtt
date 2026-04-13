@@ -106,13 +106,14 @@ menu "Autonomous controller configuration"
         default 50
         help
             Number of consecutive loop iterations with no position change
-            before a preset move is considered complete.
+            before a preset move is considered complete. Each iteration
+            is 20ms, so default 50 = 1 second.
 
     config AUTONOMOUS_MOVE_TIMEOUT
         int "Movement timeout (loop iterations)"
-        range 50 1000
-        default 300
+        range 50 5000
+        default 1500
         help
-            Maximum loop iterations before aborting a move (each iteration
-            is 100ms, so default 300 = 30 seconds).
+            Maximum loop iterations before aborting a move. Each iteration
+            is 20ms, so default 1500 = 30 seconds.
 endmenu
