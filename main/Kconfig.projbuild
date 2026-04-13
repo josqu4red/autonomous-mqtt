@@ -91,4 +91,28 @@ menu "Autonomous controller configuration"
         default "pass"
         help
             Password for username
+
+    config AUTONOMOUS_POSITION_THRESHOLD
+        int "Position threshold (units)"
+        range 1 10
+        default 2
+        help
+            How close to the target height (in desk units) before stopping.
+            Increase if the desk overshoots; decrease for finer precision.
+
+    config AUTONOMOUS_IDLE_THRESHOLD
+        int "Idle threshold (loop iterations)"
+        range 10 200
+        default 50
+        help
+            Number of consecutive loop iterations with no position change
+            before a preset move is considered complete.
+
+    config AUTONOMOUS_MOVE_TIMEOUT
+        int "Movement timeout (loop iterations)"
+        range 50 1000
+        default 300
+        help
+            Maximum loop iterations before aborting a move (each iteration
+            is 100ms, so default 300 = 30 seconds).
 endmenu

@@ -33,9 +33,9 @@ typedef _Atomic uint8_t shared_position_t;
 
 static const button_t presets[4] = {button_1, button_2, button_3, button_4};
 
-static const uint8_t position_threshold = 2;
-static const uint8_t idle_threshold = 50;
-static const int move_timeout_ticks = 300;
+#define position_threshold CONFIG_AUTONOMOUS_POSITION_THRESHOLD
+#define idle_threshold     CONFIG_AUTONOMOUS_IDLE_THRESHOLD
+#define move_timeout_ticks CONFIG_AUTONOMOUS_MOVE_TIMEOUT
 
 
 typedef enum {
