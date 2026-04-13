@@ -49,6 +49,8 @@ void go_to_height(position_t desired, shared_position_t *shared) {
   send_command(direction);
 
   int ticks = 0;
+  position_t initial = current;
+  bool has_moved = false;
   TickType_t next_cmd = xTaskGetTickCount() + CMD_INTERVAL;
 
   while (!done && !atomic_load(&cancel_flag) && ticks < move_timeout_ticks) {
@@ -57,10 +59,15 @@ void go_to_height(position_t desired, shared_position_t *shared) {
     ESP_LOGD(tag, "position: %d", current);
     ticks++;
 
-    if (direction == button_up) {
-      done = ((int16_t)current >= (int16_t)desired - (int16_t)position_threshold);
-    } else {
-      done = ((int16_t)current <= (int16_t)desired + (int16_t)position_threshold);
+    if (!has_moved) {
+      has_moved = (direction == button_up) ? (current > initial) : (current < initial);
+    }
+    if (has_moved) {
+      if (direction == button_up) {
+        done = ((int16_t)current >= (int16_t)desired - (int16_t)position_threshold);
+      } else {
+        done = ((int16_t)current <= (int16_t)desired + (int16_t)position_threshold);
+      }
     }
     if (done) break;
 
