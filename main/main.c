@@ -8,6 +8,8 @@
 #include <string.h>
 
 static const char *tag = "main";
+static const char *state_topic = "autonomous/desk1/data";
+static const char *command_topic = "autonomous/desk1/set";
 static esp_mqtt_client_handle_t mqtt_cli;
 QueueHandle_t desk_cmd_queue;
 
