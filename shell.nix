@@ -18,5 +18,6 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     esp-idf-full
     clang-tools
+    mqttui
   ];
 }
