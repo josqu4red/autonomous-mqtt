@@ -3,10 +3,10 @@
 
 #include "esp_wifi.h"
 
-#define HOSTNAME            CONFIG_AUTONOMOUS_HOSTNAME
-#define WIFI_SSID           CONFIG_AUTONOMOUS_WIFI_SSID
-#define WIFI_PASS           CONFIG_AUTONOMOUS_WIFI_PASSWORD
-#define WIFI_MAXIMUM_RETRY  CONFIG_AUTONOMOUS_WIFI_MAXIMUM_RETRY
+#define HOSTNAME CONFIG_AUTONOMOUS_HOSTNAME
+#define WIFI_SSID CONFIG_AUTONOMOUS_WIFI_SSID
+#define WIFI_PASS CONFIG_AUTONOMOUS_WIFI_PASSWORD
+#define WIFI_MAXIMUM_RETRY CONFIG_AUTONOMOUS_WIFI_MAXIMUM_RETRY
 
 #if CONFIG_AUTONOMOUS_WIFI_AUTH_WPA_PSK
 #define WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WPA_PSK
@@ -22,11 +22,12 @@
 #define WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
 #endif
 
-/* The event group allows multiple bits for each event, but we only care about two events:
+/* The event group allows multiple bits for each event, but we only care about
+ * two events:
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
 #define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
+#define WIFI_FAIL_BIT BIT1
 
 void wifi_init(void);
 
